@@ -1,23 +1,6 @@
-# Core
+# requirements.txt
 fastapi==0.115.2
 uvicorn[standard]==0.30.6
-hypercorn==0.14.4
-
-# MySQL Driver
-PyMySQL==1.1.1
-cryptography==43.0.1
-
-# JWT & Auth
+pymysql==1.1.1
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-
-# Google OAuth2 ID Token Verification
-google-auth==2.35.0
-
-# Optional but recommended
-python-multipart==0.0.9
 pydantic==2.9.2
-pydantic-settings==2.5.2
-
-# For better logging in production
-loguru==0.7.2
