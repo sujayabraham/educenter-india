@@ -5,39 +5,41 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 import pymysql
 import os
+import re
 
 app = FastAPI(title="EduCenter Backend", version="2.0")
 
 # === GET MYSQL URL FROM RAILWAY (AUTO-INJECTED) ===
 DATABASE_URL = os.getenv("MYSQL_URL") or os.getenv("MYSQLURL")
-if not DATABASE_URL:
-    print("WARNING: No MySQL – Running in demo mode (no persistence)")
-    conn = None  # Or use in-memory dict for demo
-else:
-    # Your existing parse + connect code
-    
-# Parse MySQL URL
-import re
-match = re.match(r"mysql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", DATABASE_URL)
-if not match:
-    raise Exception("Invalid MySQL URL format")
-username, password, host, port, database = match.groups()
 
-# Create connection
-conn = pymysql.connect(
-    host=host,
-    port=int(port),
-    user=username,
-    password=password,
-    database=database,
-    cursorclass=pymysql.cursors.DictCursor,
-    autocommit=True
-)
+conn = None
+if DATABASE_URL:
+    try:
+        match = re.match(r"mysql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", DATABASE_URL)
+        if not match:
+            print("Invalid MySQL URL format")
+        else:
+            username, password, host, port, database = match.groups()
+            conn = pymysql.connect(
+                host=host,
+                port=int(port),
+                user=username,
+                password=password,
+                database=database,
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True
+            )
+            print("MySQL Connected Successfully!")
+    except Exception as e:
+        print(f"MySQL Connection Failed: {e}")
+        conn = None
+else:
+    print("No MYSQL_URL found – Running in DEMO MODE (no database)")
 
 # JWT Settings
-SECRET_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30"
+SECRET_KEY = "your-super-secret-key-change-in-production-256-bit"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -64,23 +66,23 @@ async def root():
 
 @app.post("/auth/firebase", response_model=AuthResponse)
 async def login_firebase(token: FirebaseToken):
-    # In production: verify Firebase ID token here
-    # For demo, we accept any token and create user
-    phone = "9449244215"  # Replace with real phone from Firebase token
+    phone = "9999999999"
     name = "Demo Student"
 
-    with conn.cursor() as cur:
-        cur.execute("SELECT * FROM students WHERE phone = %s", (phone,))
-        user = cur.fetchone()
-
-        if not user:
-            cur.execute("""
-                INSERT INTO students (name, phone, class_name, pending_fees) 
-                VALUES (%s, %s, %s, %s)
-            """, (name, phone, "Class 12th", 25000))
-            user_id = cur.lastrowid
-        else:
-            user_id = user['id']
+    user_id = 1
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM students WHERE phone = %s", (phone,))
+                user = cur.fetchone()
+                if not user:
+                    cur.execute("INSERT INTO students (name, phone, class_name, pending_fees) VALUES (%s, %s, %s, %s)",
+                                (name, phone, "Class 12th", 25000))
+                    user_id = cur.lastrowid
+                else:
+                    user_id = user['id']
+        except Exception as e:
+            print(f"DB Error: {e}")
 
     access_token = create_jwt({"sub": str(user_id)}, minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token = create_jwt({"sub": str(user_id)}, days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -97,11 +99,12 @@ async def profile(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
-        with conn.cursor() as cur:
-            cur.execute("SELECT name, phone, class_name, pending_fees FROM students WHERE id = %s", (user_id,))
-            user = cur.fetchone()
-            if not user:
-                raise HTTPException(404, "User not found")
-            return user
+        if conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT name, phone, class_name, pending_fees FROM students WHERE id = %s", (user_id,))
+                user = cur.fetchone()
+                if user:
+                    return user
+        return {"name": "Demo Student", "phone": "9999999999", "class_name": "Class 12th", "pending_fees": 25000}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
