@@ -37,7 +37,7 @@ else:
     print("No MYSQL_URL found – Running in DEMO MODE (no database)")
 
 # JWT Settings
-SECRET_KEY = "your-super-secret-key-change-in-production-256-bit"
+SECRET_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 REFRESH_TOKEN_EXPIRE_DAYS = 30
@@ -49,7 +49,7 @@ class FirebaseToken(BaseModel):
 
 class AuthResponse(BaseModel):
     access_token: str
-    refresh_token: str
+    refresh_token: Optional[str] = None
     name: str
     phone: str
 
