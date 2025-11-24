@@ -64,6 +64,15 @@ def create_jwt(data: dict, minutes: int = None, days: int = None):
 async def root():
     return {"message": "EduCenter Backend LIVE & FREE!", "time": datetime.now().isoformat()}
 
+@app.get("/helloworld")
+async def helloworld():
+    return {
+        "message": "Hello World from Sujay's EduCenter Backend!",
+        "status": "working perfectly",
+        "owner": "sujayabraham",
+        "time": datetime.utcnow().isoformat() + "Z"
+    }    
+
 @app.post("/auth/firebase", response_model=AuthResponse)
 async def login_firebase(token: FirebaseToken):
     phone = "9999999999"
