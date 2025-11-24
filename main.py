@@ -11,8 +11,11 @@ app = FastAPI(title="EduCenter Backend", version="2.0")
 # === GET MYSQL URL FROM RAILWAY (AUTO-INJECTED) ===
 DATABASE_URL = os.getenv("MYSQL_URL") or os.getenv("MYSQLURL")
 if not DATABASE_URL:
-    raise Exception("No MySQL URL found! Deploy on Railway")
-
+    print("WARNING: No MySQL – Running in demo mode (no persistence)")
+    conn = None  # Or use in-memory dict for demo
+else:
+    # Your existing parse + connect code
+    
 # Parse MySQL URL
 import re
 match = re.match(r"mysql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", DATABASE_URL)
